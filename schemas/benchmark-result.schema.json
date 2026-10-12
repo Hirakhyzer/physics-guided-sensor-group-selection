@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Hirakhyzer/physics-guided-sensor-group-selection/schemas/benchmark-result.schema.json",
+  "title": "Physics-Guided Sensor Selection Benchmark Result",
+  "type": "object",
+  "required": ["protocol", "steps", "seeds", "budgets", "runs"],
+  "properties": {
+    "protocol": {"type": "string", "minLength": 1},
+    "steps": {"type": "integer", "minimum": 1},
+    "seeds": {"type": "array", "minItems": 1, "items": {"type": "integer"}},
+    "budgets": {
+      "type": "object",
+      "required": ["cost", "energy"],
+      "properties": {
+        "cost": {"type": "number", "minimum": 0},
+        "energy": {"type": "number", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seed", "method", "sensors", "mean_rmse", "mean_resilient_rmse", "worst_rmse"],
+        "properties": {
+          "domain": {"type": "string"},
+          "seed": {"type": "integer"},
+          "method": {"type": "string"},
+          "sensors": {"type": "array", "items": {"type": "string"}},
+          "mean_rmse": {"type": "number"},
+          "mean_resilient_rmse": {"type": "number"},
+          "worst_rmse": {"type": "number"},
+          "cases": {"type": "array"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
