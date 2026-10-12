@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "Physics-Guided Sensor Group Selection"
+message: "If you use this research software, please cite the repository and the exact commit used."
+type: software
+authors:
+  - family-names: Khyzer
+    given-names: Hira
+repository-code: "https://github.com/Hirakhyzer/physics-guided-sensor-group-selection"
+license: MIT
+version: 1.0.0
+date-released: 2026-10-12
+keywords:
+  - cyber-physical systems
+  - sensor selection
+  - observability
+  - resilient estimation
+  - physics-guided methods
