@@ -11,6 +11,7 @@ from .resilient_estimation import ResilientEstimationResult, innovation_gated_es
 from .robustness import DropoutCase, DropoutReport, evaluate_sensor_dropout
 from .scenarios import DisturbanceKind, SensorDisturbance, SimulationTrace, simulate_measurements
 from .selection import SelectionResult, SelectionWeights, group_utility, select_groups
+from .statistics import PairedComparison, paired_bootstrap_delta
 
 __all__ = [
     "BaselineSelection",
@@ -22,6 +23,7 @@ __all__ = [
     "EvaluationCase",
     "EvaluationSummary",
     "GroupPhysicsScore",
+    "PairedComparison",
     "PhysicsSystem",
     "ReconfigurationResult",
     "ResilientEstimationResult",
@@ -43,6 +45,7 @@ __all__ = [
     "kalman_estimate",
     "observability_greedy",
     "observability_matrix",
+    "paired_bootstrap_delta",
     "reconfigure_selection",
     "reliability_first",
     "select_groups",
