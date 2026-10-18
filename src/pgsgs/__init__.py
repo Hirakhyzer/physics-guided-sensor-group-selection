@@ -3,6 +3,7 @@
 from .adaptive import ReconfigurationResult, reconfigure_selection
 from .baselines import BaselineSelection, cheapest_first, observability_greedy, reliability_first
 from .benchmarks import battery_pack_benchmark, benchmark_suite, coupled_process_benchmark, thermal_building_benchmark
+from .conditioning import ObservabilityConditioning, observability_conditioning
 from .estimation import EstimationResult, EstimatorConfig, kalman_estimate
 from .evaluation import EvaluationCase, EvaluationSummary, evaluate_sensor_set
 from .model import PhysicsSystem, Sensor, SensorGroup
@@ -23,6 +24,7 @@ __all__ = [
     "EvaluationCase",
     "EvaluationSummary",
     "GroupPhysicsScore",
+    "ObservabilityConditioning",
     "PairedComparison",
     "PhysicsSystem",
     "ReconfigurationResult",
@@ -43,6 +45,7 @@ __all__ = [
     "group_utility",
     "innovation_gated_estimate",
     "kalman_estimate",
+    "observability_conditioning",
     "observability_greedy",
     "observability_matrix",
     "paired_bootstrap_delta",
