@@ -55,3 +55,52 @@ def test_duplicate_sensor_group_definition_is_rejected():
         assert "duplicate" in str(exc)
     else:
         raise AssertionError("duplicate sensors should fail")
+
+
+import pytest
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("cost", float("nan")),
+    ("energy", float("inf")),
+    ("reliability", float("nan")),
+    ("reliability", -0.1),
+    ("state_index", -1),
+    ("state_index", 1.5),
+    ("state_index", True),
+])
+def test_sensor_rejects_invalid_resource_and_index_values(field, value):
+    with pytest.raises(ValueError):
+        Sensor("sensor", 0, **({field: value} if field != "state_index" else {"state_index": value}))
+
+
+@pytest.mark.parametrize(("A", "coupling"), [
+    ([[float("nan")]], [[0.0]]),
+    ([[1.0]], [[float("inf")]]),
+    (np.zeros((0, 0)), np.zeros((0, 0))),
+    ([[1.0, 0.0]], [[0.0, 0.0]]),
+])
+def test_physics_model_rejects_nonfinite_or_invalid_matrices(A, coupling):
+    with pytest.raises(ValueError):
+        PhysicsSystem(A=np.asarray(A), sensors={}, coupling=np.asarray(coupling))
+
+
+def test_physics_system_snapshots_model_matrices():
+    source = np.eye(2)
+    system = PhysicsSystem(A=source, sensors={"s": Sensor("s", 0)}, coupling=np.zeros((2, 2)))
+    source[0, 0] = 50.0
+    assert system.A[0, 0] == 1.0
+    with pytest.raises(ValueError):
+        system.A[0, 0] = 5.0
+
+
+def test_physics_system_rejects_mismatched_sensor_keys():
+    with pytest.raises(ValueError, match="mapping keys"):
+        PhysicsSystem(A=np.eye(1), sensors={"wrong": Sensor("correct", 0)}, coupling=np.zeros((1, 1)))
+
+
+def test_group_rejects_invalid_name_and_members():
+    with pytest.raises(ValueError, match="group name"):
+        SensorGroup("", ("s",))
+    with pytest.raises(ValueError, match="members"):
+        SensorGroup("group", ("",))
