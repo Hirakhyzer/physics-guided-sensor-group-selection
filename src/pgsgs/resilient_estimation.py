@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .estimation import EstimatorConfig
-from .model import PhysicsSystem
+from .model import PhysicsSystem, finite_real
 
 
 @dataclass(frozen=True)
@@ -32,13 +32,24 @@ def innovation_gated_estimate(
     state and uncertainty. It is a defensive robustness mechanism for synthetic
     fault/attack studies, not a guarantee of attack detection.
     """
-    if gate_sigma <= 0:
+    if finite_real(gate_sigma, "gate_sigma") <= 0:
         raise ValueError("gate_sigma must be positive")
+    if not sensor_names or len(set(sensor_names)) != len(sensor_names):
+        raise ValueError("estimation sensor names must be nonempty and unique")
+    unknown = set(sensor_names) - set(system.sensors)
+    if unknown:
+        raise ValueError(f"unknown sensors: {sorted(unknown)}")
     y = np.asarray(measurements, dtype=float)
-    if y.ndim != 2 or y.shape[1] != len(sensor_names):
-        raise ValueError("measurements must have shape [steps, selected sensors]")
+    if y.ndim != 2 or y.shape[1] != len(sensor_names) or y.shape[0] == 0:
+        raise ValueError("measurements must have nonempty shape [steps, selected sensors]")
+    if np.isinf(y).any():
+        raise ValueError("measurements may use NaN for missing data but must not contain infinity")
 
     n = system.state_dim
+    if truth is not None:
+        truth_values = np.asarray(truth, dtype=float)
+        if truth_values.shape != (len(y), n) or not np.isfinite(truth_values).all():
+            raise ValueError("truth must be a finite trajectory matching the estimated state shape")
     C_all = system.measurement_matrix(sensor_names)
     x = np.zeros(n, dtype=float)
     P = np.eye(n) * config.initial_variance

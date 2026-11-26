@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .model import PhysicsSystem
+from .model import PhysicsSystem, finite_real
 
 
 @dataclass(frozen=True)
@@ -14,6 +14,8 @@ class EstimatorConfig:
     initial_variance: float = 1.0
 
     def __post_init__(self) -> None:
+        for name in ("process_variance", "measurement_variance", "initial_variance"):
+            finite_real(getattr(self, name), name)
         if self.process_variance < 0 or self.measurement_variance <= 0 or self.initial_variance < 0:
             raise ValueError("estimator variances must be non-negative and measurement variance positive")
 
@@ -43,18 +45,26 @@ def kalman_estimate(
     """
     if not sensor_names:
         raise ValueError("at least one sensor is required for estimation")
+    if len(set(sensor_names)) != len(sensor_names):
+        raise ValueError("sensor names must be unique for estimation")
     unknown = set(sensor_names) - set(system.sensors)
     if unknown:
         raise ValueError(f"unknown sensors: {sorted(unknown)}")
 
     y = np.asarray(measurements, dtype=float)
-    if y.ndim != 2 or y.shape[1] != len(sensor_names):
-        raise ValueError("measurements must have shape [steps, selected sensors]")
+    if y.ndim != 2 or y.shape[1] != len(sensor_names) or y.shape[0] == 0:
+        raise ValueError("measurements must have nonempty shape [steps, selected sensors]")
+    if np.isinf(y).any():
+        raise ValueError("measurements may use NaN for missing data but must not contain infinity")
 
     n = system.state_dim
     x = np.zeros(n, dtype=float) if initial_state is None else np.asarray(initial_state, dtype=float).copy()
-    if x.shape != (n,):
-        raise ValueError("initial_state has wrong dimension")
+    if x.shape != (n,) or not np.isfinite(x).all():
+        raise ValueError("initial_state must be a finite state-dimensional vector")
+    if truth is not None:
+        truth_values = np.asarray(truth, dtype=float)
+        if truth_values.shape != (len(y), n) or not np.isfinite(truth_values).all():
+            raise ValueError("truth must be a finite trajectory matching the estimated state shape")
 
     P = np.eye(n) * config.initial_variance
     Q = np.eye(n) * config.process_variance

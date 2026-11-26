@@ -99,3 +99,69 @@ def test_benchmark_suite_has_distinct_domains():
     for system, groups in suite.values():
         assert system.state_dim == 4
         assert len(groups) >= 4
+
+
+import pytest
+
+from pgsgs.estimation import EstimatorConfig
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("process_variance", float("nan")),
+    ("initial_variance", float("inf")),
+    ("measurement_variance", float("nan")),
+    ("measurement_variance", 0.0),
+    ("process_variance", True),
+])
+def test_estimator_rejects_invalid_variance_parameters(field, value):
+    with pytest.raises(ValueError):
+        EstimatorConfig(**{field: value})
+
+
+@pytest.mark.parametrize("engine", [kalman_estimate, innovation_gated_estimate])
+def test_estimators_reject_invalid_measurement_arrays(engine):
+    system, _ = coupled_process_benchmark()
+    names = ("pressure_in",)
+    with pytest.raises(ValueError, match="nonempty shape"):
+        engine(system, names, np.empty((0, 1)))
+    with pytest.raises(ValueError, match="infinity"):
+        engine(system, names, np.array([[float("inf")]]))
+    with pytest.raises(ValueError, match="unique"):
+        engine(system, (names[0], names[0]), np.zeros((1, 2)))
+
+
+@pytest.mark.parametrize("engine", [kalman_estimate, innovation_gated_estimate])
+def test_estimators_allow_nan_dropouts_and_reject_nonfinite_truth(engine):
+    system, _ = coupled_process_benchmark()
+    names = ("pressure_in",)
+    trace = engine(system, names, np.array([[float("nan")], [0.1]]))
+    assert trace.estimates.shape == (2, system.state_dim)
+    with pytest.raises(ValueError, match="truth"):
+        engine(system, names, np.zeros((2, 1)),
+               truth=np.full((2, system.state_dim), float("nan")))
+
+
+def test_kalman_rejects_nonfinite_initial_state():
+    system, _ = coupled_process_benchmark()
+    with pytest.raises(ValueError, match="initial_state"):
+        kalman_estimate(system, ("flow",), np.zeros((2, 1)),
+                        initial_state=np.full(system.state_dim, float("inf")))
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("steps", 0), ("steps", 1.5), ("seed", True),
+    ("process_std", float("nan")), ("measurement_std", float("inf")),
+])
+def test_synthetic_scenario_rejects_invalid_controls(field, value):
+    system, _ = coupled_process_benchmark()
+    with pytest.raises(ValueError):
+        simulate_measurements(system, ("flow",), **{field: value})
+
+
+@pytest.mark.parametrize("kwargs", [
+    dict(sensor="flow", kind=DisturbanceKind.BIAS, start=0, end=3, magnitude=float("nan")),
+    dict(sensor="flow", kind=DisturbanceKind.DRIFT, start=1.5, end=3),
+])
+def test_disturbance_rejects_invalid_magnitude_and_window(kwargs):
+    with pytest.raises(ValueError):
+        SensorDisturbance(**kwargs)

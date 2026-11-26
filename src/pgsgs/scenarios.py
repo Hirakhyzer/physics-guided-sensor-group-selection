@@ -5,7 +5,7 @@ from enum import Enum
 
 import numpy as np
 
-from .model import PhysicsSystem
+from .model import PhysicsSystem, finite_real
 
 
 class DisturbanceKind(str, Enum):
@@ -24,8 +24,11 @@ class SensorDisturbance:
     magnitude: float = 0.0
 
     def __post_init__(self) -> None:
-        if self.start < 0 or self.end <= self.start:
-            raise ValueError("disturbance requires 0 <= start < end")
+        if (isinstance(self.start, bool) or not isinstance(self.start, int)
+                or isinstance(self.end, bool) or not isinstance(self.end, int)
+                or self.start < 0 or self.end <= self.start):
+            raise ValueError("disturbance requires integer bounds 0 <= start < end")
+        finite_real(self.magnitude, "disturbance magnitude")
 
 
 @dataclass(frozen=True)
@@ -46,10 +49,15 @@ def simulate_measurements(
     initial_state: np.ndarray | None = None,
     disturbances: tuple[SensorDisturbance, ...] = (),
 ) -> SimulationTrace:
-    if steps < 1:
-        raise ValueError("steps must be positive")
-    if process_std < 0 or measurement_std < 0:
-        raise ValueError("noise standard deviations must be non-negative")
+    if isinstance(steps, bool) or not isinstance(steps, int) or steps < 1:
+        raise ValueError("steps must be a positive integer")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a nonnegative integer")
+    for label, value in (("process_std", process_std), ("measurement_std", measurement_std)):
+        if finite_real(value, label) < 0:
+            raise ValueError(f"{label} must be nonnegative")
+    if len(set(sensor_names)) != len(sensor_names):
+        raise ValueError("sensor names must be unique")
     unknown = set(sensor_names) - set(system.sensors)
     if unknown:
         raise ValueError(f"unknown sensors: {sorted(unknown)}")
@@ -57,8 +65,8 @@ def simulate_measurements(
     rng = np.random.default_rng(seed)
     n = system.state_dim
     x = np.linspace(0.2, 0.8, n) if initial_state is None else np.asarray(initial_state, dtype=float).copy()
-    if x.shape != (n,):
-        raise ValueError("initial_state has wrong dimension")
+    if x.shape != (n,) or not np.isfinite(x).all():
+        raise ValueError("initial_state must be a finite state-dimensional vector")
 
     C = system.measurement_matrix(sensor_names)
     truth = np.zeros((steps, n), dtype=float)
