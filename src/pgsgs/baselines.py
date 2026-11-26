@@ -6,6 +6,7 @@ import numpy as np
 
 from .model import PhysicsSystem, SensorGroup
 from .physics import observability_matrix
+from .selection import validate_resource_budgets
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ def _pack_by_order(
     max_energy: float,
     method: str,
 ) -> BaselineSelection:
+    validate_resource_budgets(max_cost, max_energy)
     chosen = []
     cost = energy = 0.0
     for name in ordered_names:
@@ -58,6 +60,7 @@ def reliability_first(system: PhysicsSystem, *, max_cost: float, max_energy: flo
 
 
 def observability_greedy(system: PhysicsSystem, *, max_cost: float, max_energy: float) -> BaselineSelection:
+    validate_resource_budgets(max_cost, max_energy)
     chosen: list[str] = []
     remaining = set(system.sensors)
     cost = energy = 0.0

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
-from .model import PhysicsSystem, SensorGroup
+from .model import PhysicsSystem, SensorGroup, finite_real
 from .physics import GroupPhysicsScore, group_physics_score
 
 
@@ -14,6 +15,17 @@ class SelectionWeights:
     redundancy: float = 0.1
     cost: float = 0.05
     energy: float = 0.05
+
+    def __post_init__(self) -> None:
+        for name in ("observability", "coupling", "reliability", "redundancy", "cost", "energy"):
+            if finite_real(getattr(self, name), f"{name} weight") < 0:
+                raise ValueError(f"{name} weight must be non-negative")
+
+
+def validate_resource_budgets(max_cost: float, max_energy: float) -> None:
+    """Reject invalid budgets before comparing candidate sensor costs."""
+    if finite_real(max_cost, "max_cost") < 0 or finite_real(max_energy, "max_energy") < 0:
+        raise ValueError("resource budgets must be non-negative")
 
 
 @dataclass(frozen=True)
@@ -67,8 +79,15 @@ def select_groups(
     of the union at every step, while cost and energy are charged only once per
     physical sensor.
     """
-    if max_cost < 0 or max_energy < 0:
-        raise ValueError("budgets must be non-negative")
+    validate_resource_budgets(max_cost, max_energy)
+    if max_groups is not None and (
+        isinstance(max_groups, bool) or not isinstance(max_groups, int) or max_groups < 0
+    ):
+        raise ValueError("max_groups must be a nonnegative integer or None")
+    if not isinstance(require_positive_gain, bool):
+        raise ValueError("require_positive_gain must be a boolean")
+    if len({group.name for group in groups}) != len(groups):
+        raise ValueError("sensor group names must be unique")
 
     for group in groups:
         unknown = set(group.sensors) - set(system.sensors)

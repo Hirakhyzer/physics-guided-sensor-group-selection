@@ -70,8 +70,10 @@ import pytest
     ("state_index", True),
 ])
 def test_sensor_rejects_invalid_resource_and_index_values(field, value):
+    kwargs = dict(name="sensor", state_index=0)
+    kwargs[field] = value
     with pytest.raises(ValueError):
-        Sensor("sensor", 0, **({field: value} if field != "state_index" else {"state_index": value}))
+        Sensor(**kwargs)
 
 
 @pytest.mark.parametrize(("A", "coupling"), [
@@ -104,3 +106,60 @@ def test_group_rejects_invalid_name_and_members():
         SensorGroup("", ("s",))
     with pytest.raises(ValueError, match="members"):
         SensorGroup("group", ("",))
+
+
+from pgsgs.adaptive import reconfigure_selection
+from pgsgs.baselines import cheapest_first, observability_greedy
+from pgsgs.selection import SelectionWeights
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("max_cost", float("nan")),
+    ("max_energy", float("inf")),
+    ("max_cost", -1.0),
+    ("max_energy", True),
+    ("max_groups", -1),
+    ("max_groups", 2.5),
+    ("max_groups", True),
+])
+def test_selector_rejects_invalid_budgets_and_group_limits(field, value):
+    system, groups = coupled_process_benchmark()
+    args = dict(max_cost=3.2, max_energy=2.6)
+    args[field] = value
+    with pytest.raises(ValueError):
+        select_groups(system, groups, **args)
+
+
+def test_selection_rejects_duplicate_group_names():
+    system, _ = coupled_process_benchmark()
+    groups = [SensorGroup("same", ("flow",)), SensorGroup("same", ("level",))]
+    with pytest.raises(ValueError, match="names must be unique"):
+        select_groups(system, groups, max_cost=3.2, max_energy=2.6)
+
+
+@pytest.mark.parametrize("weight", [float("nan"), float("inf"), -0.1, True])
+def test_selector_rejects_invalid_weight(weight):
+    with pytest.raises(ValueError):
+        SelectionWeights(energy=weight)
+
+
+@pytest.mark.parametrize("method", [cheapest_first, observability_greedy])
+def test_baselines_reject_invalid_resource_limits(method):
+    system, _ = coupled_process_benchmark()
+    with pytest.raises(ValueError, match="max_cost"):
+        method(system, max_cost=float("nan"), max_energy=2.0)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("minimum_observability", float("nan")),
+    ("minimum_observability", float("inf")),
+    ("minimum_observability", 1.2),
+    ("reliability_updates", {"flow": float("nan")}),
+    ("reliability_updates", {"flow": float("inf")}),
+])
+def test_reconfiguration_rejects_invalid_thresholds(field, value):
+    system, groups = coupled_process_benchmark()
+    kwargs = dict(max_cost=3.2, max_energy=2.6)
+    kwargs[field] = value
+    with pytest.raises(ValueError):
+        reconfigure_selection(system, groups, **kwargs)

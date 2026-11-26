@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from .model import PhysicsSystem, SensorGroup
+from .model import PhysicsSystem, SensorGroup, finite_real
 from .physics import group_physics_score
 from .selection import SelectionResult, SelectionWeights, select_groups
 
@@ -34,6 +34,7 @@ def reconfigure_selection(
     entirely when one member is unavailable. The result explicitly reports
     whether the requested observability target is still achieved.
     """
+    finite_real(minimum_observability, "minimum_observability")
     if not 0.0 <= minimum_observability <= 1.0:
         raise ValueError("minimum_observability must be within [0, 1]")
     unavailable = unavailable_sensors or set()
@@ -44,8 +45,10 @@ def reconfigure_selection(
     updates = reliability_updates or {}
     if set(updates) - set(system.sensors):
         raise ValueError("reliability update references unknown sensor")
-    if any(not 0.0 <= value <= 1.0 for value in updates.values()):
-        raise ValueError("updated reliability must be within [0, 1]")
+    for value in updates.values():
+        finite_real(value, "updated reliability")
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("updated reliability must be within [0, 1]")
 
     sensors = {
         name: replace(sensor, reliability=updates.get(name, sensor.reliability))
