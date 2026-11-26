@@ -2,11 +2,13 @@
 
 [![CI](https://github.com/Hirakhyzer/physics-guided-sensor-group-selection/actions/workflows/ci.yml/badge.svg)](https://github.com/Hirakhyzer/physics-guided-sensor-group-selection/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+![Version](https://img.shields.io/badge/version-1.0.1-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Research](https://img.shields.io/badge/focus-resilient%20CPS-orange)
 
 **Physics-guided, budget-aware sensor group selection for resilient cyber-physical state estimation.**
+
+**v1.0.1 correctness patch:** Sensor, physics-model, selector, reconfiguration, estimator, and simulation inputs are checked for valid numeric ranges and dimensions. NaN remains supported for explicitly missing sensor measurements, while infinite values are rejected. See [CHANGELOG.md](CHANGELOG.md).
 
 Instead of ranking sensors independently, this project treats sensing as a structured decision problem: sensors belong to physically meaningful groups, groups overlap, resources are finite, failures occur, and the final objective is accurate state estimation rather than a high internal selection score.
 

@@ -7,8 +7,8 @@ authors:
     given-names: Hira
 repository-code: "https://github.com/Hirakhyzer/physics-guided-sensor-group-selection"
 license: MIT
-version: 1.0.0
-date-released: 2026-10-12
+version: 1.0.1
+date-released: 2026-11-26
 keywords:
   - cyber-physical systems
   - sensor selection
